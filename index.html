@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>paper.js 测试</title>
+    <style>
+        canvas {
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="myCanvas" width="500" height="500"></canvas>
+    <script src="./lib/pathseg.js"></script>
+    <script src="./lib/Snap.svg.js"></script>
+    <script src="./lib/paper-core.js"></script>
+    <script>
+        const {Path, CompoundPath, Point, Segment, Shape, Size, Curve} = paper;
+        let canvas = document.getElementById('myCanvas');
+        paper.setup(canvas);
+    </script>
+    <!-- <script src="./bool.js"></script> -->
+    <!-- <script src="./curve-test.js"></script> -->
+    <!-- <script src="./path-str/path-str.js"></script> -->
+    <!-- <script src="./divide.js"></script> -->
+    <script type="module" src="./index.js"></script>
+</body>
+</html>
