@@ -1,5 +1,15 @@
 
 
+class Path_ {    // 重新定义一个 Path_ 类，来包装 peperjs 对象 喝 snapsvg 对象。
+    constructor() {
+        this.pathData = pathData
+        this.paper_ =  new paper.Shape.Path
+    }
+    paper() {
+        
+    }
+}
+
 // class Path 
 // 暴露的方法
 class Line {
@@ -10,6 +20,10 @@ class Line {
         this.pathData = pathData; 
 
         const pathArray = Snap.parsePathString(pathData);
+        if (!pathArray[0]) {
+            console.error(pathData)
+            console.log(typeof pathData)
+        }
         this.start =  {
             x: pathArray[0][1],
             y: pathArray[0][2]
@@ -79,14 +93,19 @@ export const createSelfLine = (pathDatas) => {
         console.log(pathData);
         // const paperPath = new Path(pathData);
         const offsets = getOffsets(pathData, pathData);   //  求 path 自己和自己的交点，相对起点的距离
-        console.log(offsets)
+        console.log(Object.values(offsets))
+
+        Object.values(offsets).forEach(item => {
+            const lines = getLines(item.pathData, item.offsets);
+            drawLines(lines);    // 线条可视化
+            // drawLinesAnimation(lines, 1000);
+        })
 
 
-        const lines = getLines(pathData, offsets);
-        console.log("TCL: createSelfLine -> lines", lines)
+        // const lines = getLines(pathData, offsets);
+        // console.log("TCL: createSelfLine -> lines", lines)
         
-        // drawLines(lines);    // 线条可视化
-        drawLinesAnimation(lines);
+     
     
 };
 
@@ -96,7 +115,7 @@ const drawPoint = (point) => {
 }
 
 // 动画演示绘制的 subPath
-const drawLinesAnimation = (lines) => {
+const drawLinesAnimation = (lines, interval = 700) => {
     
     let len = lines.length;
     let i = 0;
@@ -111,7 +130,7 @@ const drawLinesAnimation = (lines) => {
                 console.log('zhi行')
                 path.remove();
                 draw();
-            }, 700);
+            }, interval);
         }
         
     }
@@ -126,10 +145,49 @@ const drawLines = (lines) => {
     })
 }
 
+// 获取 子path
+const getChildrenPaths = (paperPath) => {
+    class Child {
+        constructor(pathData, id) {
+            this.pathData = pathData;
+            this.id = id;
+            this.offsets = [];
+        }
+        addOffset(val) {
+            this.offsets.push(val);
+            this.offsets.sort((a,b) => a-b);   // 排序。
+        }
+    }
+    let children = {};
+    paperPath.children.forEach(item => {
+        /* children.push({
+            pathData: item.pathData,
+            id: item.id,
+            // start,
+            // end,
+        }); */
+
+        children[item.id] = new Child(item.pathData, item.id);
+        
+        /* {
+            pathData: item.pathData,
+            id: item.id,
+            offsets: [],
+        } */
+
+        
+    })
+    return children;
+}
 
 // 求自身的交点。
 const getOffsets = (pathData) => {
     const path = new paper.CompoundPath(pathData);
+    window.path = path;
+
+    // 将 子 path 都保存起来。
+    const childrenPaths = getChildrenPaths(path);
+    console.log(childrenPaths);
 
     path.strokeColor = 'black';
     // path.selected = true;
@@ -141,20 +199,25 @@ const getOffsets = (pathData) => {
         offsets.push(item.offset);
         offsets.push(item.intersection.offset);
 
+        childrenPaths[item.path.id].addOffset(item.offset);
+        childrenPaths[item.intersection.path.id].addOffset(item.intersection.offset);
+        
+
         // 绘制交点。
         drawPoint(item.point)
 
     });
     // console.log(offsets)
     offsets.sort((a,b) => a - b);  // 排序
-    return offsets;
+    // return offsets;
+    return childrenPaths;
 }
 
 // 求自己和自己相交切割后产生的 线条。
 export const getLines = (d, offsets) => {
     if (offsets.length == 0) return [];   // 返回空数组。
     // offsets 排序
-    offsets.sort((a,b) => a - b);
+    // offsets.sort((a,b) => a - b);
     
     let lines = [];
     (() => {
@@ -185,12 +248,12 @@ export const getLines = (d, offsets) => {
 
         let point = Snap.path.getPointAtLength(d, offset);
         const circle = new Shape.Circle(new Point(point.x, point.y), 4);
-        circle.fillColor = 'red';
+        circle.fillColor = 'black';
     }
 
     // 最后一条线合并进第一条线里面。
     (() => {
-        /* let offset = offsets[offsets.length - 1];
+        let offset = offsets[offsets.length - 1];
         let pathData = Snap.path.getSubpath(d, offset, Infinity);
 
         console.log(lines[0].pathData)
@@ -198,7 +261,7 @@ export const getLines = (d, offsets) => {
         const a = new SVG.PathArray(lines[0].pathData);
         console.log(a)
         a.value.splice(0, 1);
-        lines[0] = new Line(pathData + a.toString()); */
+        lines[0] = new Line(pathData + a.toString());
 
         // const line = new Line(pathData);
         // let lines[0]
