@@ -1,49 +1,37 @@
-import { getLines } from "./getBlocks.js";
+import { getLines, createSelfLine } from "./getBlocks.js";
 
 
 
 // const path1 = new Path('M56 42C41 56 16 146 55 161C94 176 188 179 201 162C214 145 238 58 201 36C164 14 74 27 56 42Z ');
-const path1 = new Path('M147 121C132 135 22 127 44 185C107 185 38 99 89 56C132 28 243 84 199 26C162 4 165 106 147 121Z ');
-const path2 = new Path('M152 216C167 223 265 241 275 211C285 181 293 115 261 102C229 89 141 71 127 95C113 119 133 203 152 216Z ')
+// const path1 = new Path('M147 121C132 135 22 127 44 185C107 185 38 99 89 56C132 28 243 84 199 26C162 4 165 106 147 121Z ');
+const pathData1 = `M195 117C225 147 223 197 149 191C75 185 4 134 44 104C84 74 116 22 136 74C156 126 148 160 117 175C86 190 28 214 93 228C158 242 193 276 237 243C281 210 297 206 293 174C289 142 305 111 250 134C195 157 144 205 111 157C78 109 19 79 65 55C111 31 139 -4 168 17C197 38 219 50 203 66C187 82 120 52 120 89C120 126 99 124 124 127C149 130 210 47 227 86C244 125 195 117 195 117Z `;
+const path1 = new Path(pathData1);
 
+/* const pathDatas = [
+    // `M149 61C200 86 183 118 140 117C97 116 26 124 57 68C88 12 118 -38 142 -4C166 30 149 61 149 61Z `,
+    `M226 209C243 213 272 173 243 165C214 157 168 153 180 196C192 239 231 257 254 254C277 251 313 265 302 226C291 187 311 163 257 181C203 199 73 192 114 152C155 112 235 68 256 82C277 96 310 132 290 145C270 158 190 144 169 173C148 202 122 265 148 274C174 283 165 309 195 281C225 253 226 209 226 209Z `,
+    `M337 66C361 79 412 143 379 152C346 161 354 218 300 157C246 96 213 82 253 89C293 96 316 111 330 116C344 121 344 144 353 99C362 54 377 20 349 16C321 12 285 -14 278 21C271 56 231 70 279 76C327 82 337 66 337 66Z `,
+    // `M347 246C329 263 247 293 209 293C171 293 112 291 99 277C86 263 41 239 67 184C93 129 80 76 136 76C192 76 285 57 308 76C331 95 351 119 359 142C367 165 389 177 375 197C361 217 347 246 347 246Z `
+] */
+
+
+const pathDatas = [
+    `M67 47C67 47 71 157 71 157C71 157 186 151 186 151C186 151 177 49 177 49C177 49 67 47 67 47Z`,
+    `M149 115C149 115 158 201 158 201C158 201 279 189 279 189C279 189 259 102 259 102C259 102 149 115 149 115Z `,
+    // `M124 133C124 133 237 133 237 133C237 133 237 18 237 18C237 18 121 24 121 24C121 24 124 133 124 133Z `
+];
+
+
+/* const path2 = new Path('M152 216C167 223 265 241 275 211C285 181 293 115 261 102C229 89 141 71 127 95C113 119 133 203 152 216Z ')
+path2.strokeColor = 'black';
+path2.selected = true;
+window.path2 = path2; */
 // path1.strokeColor = 'black';
 // path1.selected = true;
 
-
-path2.strokeColor = 'black';
-path2.selected = true;
-
 window.path1 = path1;
-window.path2 = path2;
-const curves = window.curves = path1.getCrossings(path1)
-// const curves = window.curves = path1.getIntersections(path1)
 
-console.log(curves);
-
-let offsets = [];  // 距离起点的距离。
-curves.forEach(item => {
-    // console.log(item.points)
-    
-
-    // const circle = new Shape.Circle(item.point, 4);
-    // circle.fillColor = 'red';
-
-    offsets.push(item.offset);
-    offsets.push(item.intersection.offset);
-    // 显示交点的 segment 的几个点
-    // console.log(item.segment)
-    // const interiorPath = new Path({
-    //     segments: [item.segment],
-    //     fillColor: '#f04',
-    //     strokeColor: 'black'
-    // });
-    // interiorPath.selected = true;
-    // console.log(interiorPath);
-});
-
-console.log(offsets)
-
-getLines(path1.pathData, offsets)
+createSelfLine(pathDatas);
 
 
 

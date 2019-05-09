@@ -1,11 +1,33 @@
 
 
+// class Path 
 // 暴露的方法
 class Line {
-    constructor(path) {
-        this.start = start; // start 坐标 object(x, y)， 从 path 里拿
-        this.end = end;
-        this.path = path; 
+    // 默认传入的 pathData 只有 M C Z 这三种命令。
+    constructor(pathData) {
+        // this.start = start; // start 坐标 object(x, y)， 从 path 里拿
+        // this.end = end;
+        this.pathData = pathData; 
+
+        const pathArray = Snap.parsePathString(pathData);
+        this.start =  {
+            x: pathArray[0][1],
+            y: pathArray[0][2]
+        };
+
+        this.closed = false;   // 是否闭合。闭合的我称之为自闭线。
+        const last = pathArray[pathArray.length - 1];
+        if (last[0] == 'Z') {
+            this.end = Object.assign({}, this.start);
+            this.closed = true;
+        } else {
+            this.end = {
+                x: last[last.length - 2],
+                y: last[last.length - 1],
+            }
+        }
+
+        
     }
     len() {
         // 获取 path 从 start 到 end 的长度
@@ -47,33 +69,152 @@ const drawReferPoint = (seg) => {
 }
 
 
+// 先实现第一个算法
+// path 自切割，生成 lines
+export const createSelfLine = (pathDatas) => {
+    // 1. 计算 offset
+      
+        const pathData = pathDatas.join(' ');
+        console.log('复合的路径为');
+        console.log(pathData);
+        // const paperPath = new Path(pathData);
+        const offsets = getOffsets(pathData, pathData);   //  求 path 自己和自己的交点，相对起点的距离
+        console.log(offsets)
+
+
+        const lines = getLines(pathData, offsets);
+        console.log("TCL: createSelfLine -> lines", lines)
+        
+        // drawLines(lines);    // 线条可视化
+        drawLinesAnimation(lines);
+    
+};
+
+const drawPoint = (point) => {
+    const circle = new Shape.Circle(point, 4);
+    circle.fillColor = '#000';
+}
+
+// 动画演示绘制的 subPath
+const drawLinesAnimation = (lines) => {
+    
+    let len = lines.length;
+    let i = 0;
+    const draw = () => {
+        const path = new Path(lines[i].pathData);
+        path.strokeWidth = 3;
+        path.strokeColor = getColor();
+       
+        i++;
+        if (i < len) {
+            setTimeout(() => {
+                console.log('zhi行')
+                path.remove();
+                draw();
+            }, 700);
+        }
+        
+    }
+    draw();
+}
+
+const drawLines = (lines) => {
+    lines.forEach(item => {
+        const path = new CompoundPath(item.pathData);
+        path.strokeWidth = 3
+        path.strokeColor = getColor();
+    })
+}
+
+
+// 求自身的交点。
+const getOffsets = (pathData) => {
+    const path = new paper.CompoundPath(pathData);
+
+    path.strokeColor = 'black';
+    // path.selected = true;
+
+    const curves = path.getCrossings(path);
+    let offsets = [];  // 距离起点的距离。
+    console.log(curves)
+    curves.forEach(item => {
+        offsets.push(item.offset);
+        offsets.push(item.intersection.offset);
+
+        // 绘制交点。
+        drawPoint(item.point)
+
+    });
+    // console.log(offsets)
+    offsets.sort((a,b) => a - b);  // 排序
+    return offsets;
+}
+
+// 求自己和自己相交切割后产生的 线条。
 export const getLines = (d, offsets) => {
+    if (offsets.length == 0) return [];   // 返回空数组。
     // offsets 排序
     offsets.sort((a,b) => a - b);
-
-    // Snap.path.getSubpath(d, );
-    offsets.forEach( (offset, index) => {
-        const point = Snap.path.getPointAtLength(d, offset);   // 求交点
-        console.log(point)
+    
+    let lines = [];
+    (() => {
+        // 绘制第一条线
+        let offset = offsets[0];
+        let pathData = Snap.path.getSubpath(d, 0, offset);   // 这个可能不适合 复合path
+        
+        let point = Snap.path.getPointAtLength(d, offset);
         const circle = new Shape.Circle(new Point(point.x, point.y), 4);
-        circle.fillColor = 'black'
+        circle.fillColor = 'red';
+
+        const line = new Line(pathData);
+        lines.push(line);
+    })()
 
 
-        let prev = (index == 0) ? 0 : offsets[index - 1];
+    // 绘制中间部分的线
+    for (let i = 1; i < offsets.length; i++) {
+        const offset = offsets[i];
+        // let prev = (index == 0) ? 0 : offsets[index - 1];
+        const prev = offsets[i - 1];
+        const pathData = Snap.path.getSubpath(d, prev, offset);
 
-        const pathStr = Snap.path.getSubpath(d, prev, offset);
-        const line = new Path(pathStr);
+        // pathData 要取开头和结尾
+        const line = new Line(pathData);
+        lines.push(line);
+        // line 可视化。
 
-        line.strokeColor = getColor();
-        // line
-    });
-    const pathStr = Snap.path.getSubpath(d, offsets[offsets.length - 1], Infinity);
-    const lastLine = new Path(pathStr);
-    lastLine.strokeColor = getColor();
+        let point = Snap.path.getPointAtLength(d, offset);
+        const circle = new Shape.Circle(new Point(point.x, point.y), 4);
+        circle.fillColor = 'red';
+    }
+
+    // 最后一条线合并进第一条线里面。
+    (() => {
+        /* let offset = offsets[offsets.length - 1];
+        let pathData = Snap.path.getSubpath(d, offset, Infinity);
+
+        console.log(lines[0].pathData)
+
+        const a = new SVG.PathArray(lines[0].pathData);
+        console.log(a)
+        a.value.splice(0, 1);
+        lines[0] = new Line(pathData + a.toString()); */
+
+        // const line = new Line(pathData);
+        // let lines[0]
+
+        // lines.push(line);
+        // 合并起点和终点
+    })()
+    return lines;
 }
 
 const getColor = (() => {
-    let colors = ['red', 'green', 'blue', 'pink', '#F9D919', '#0084C6', '#B20BB7'],
+    let colors = [
+            '#f173ac', '#6b2f1b', '#2468a2', '#de773f', '#ed1941',
+            '#1d953f', '#F9D919', '#0084C6', '#B20BB7', '#ef4136', 
+            '#585eaa', '#8009B2', '#ad8b3d'
+        ],
         i = 0;
 
     return () => {
@@ -83,3 +224,12 @@ const getColor = (() => {
         return color;
     }
 })()
+
+/**
+ * 算法叙述
+ * 
+ * 
+ * 1. compoundPath => simple path
+ * 2. 检查 path 自身与自身的交点。如果有，自切割。知道所有 path 子切割，得到点 和 线。
+ * 3. 剩下的 path 和 line 进行两两p
+ */
