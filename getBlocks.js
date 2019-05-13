@@ -1,3 +1,5 @@
+import { Point_, Line } from "./class.js";
+import { blockAlg } from "./blockAlg.js";
 
 
 class Path_ {    // 重新定义一个 Path_ 类，来包装 peperjs 对象 喝 snapsvg 对象。
@@ -12,52 +14,6 @@ class Path_ {    // 重新定义一个 Path_ 类，来包装 peperjs 对象 喝 
 
 // class Path 
 // 暴露的方法
-class Line {
-    // 默认传入的 pathData 只有 M C Z 这三种命令。
-    constructor(pathData) {
-        // this.start = start; // start 坐标 object(x, y)， 从 path 里拿
-        // this.end = end;
-        this.pathData = pathData; 
-
-        const pathArray = Snap.parsePathString(pathData);
-        if (!pathArray[0]) {
-            console.error(pathData)
-            console.log(typeof pathData)
-        }
-        this.start =  {
-            x: pathArray[0][1],
-            y: pathArray[0][2]
-        };
-
-        this.closed = false;   // 是否闭合。闭合的我称之为自闭线。
-        const last = pathArray[pathArray.length - 1];
-        if (last[0] == 'Z') {
-            this.end = Object.assign({}, this.start);
-            this.closed = true;
-        } else {
-            this.end = {
-                x: last[last.length - 2],
-                y: last[last.length - 1],
-            }
-        }
-
-        
-    }
-    len() {
-        // 获取 path 从 start 到 end 的长度
-    };
-}
-
-class Point {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-        this.lines = [];
-    }
-    addLine(line) {
-        this.lines.push(line);
-    }
-} 
 
 
 const getBlocks = (paths) => {
@@ -89,25 +45,71 @@ export const createSelfLine = (pathDatas) => {
     // 1. 计算 offset
       
         const pathData = pathDatas.join(' ');
-        console.log('复合的路径为');
-        console.log(pathData);
+        console.log('路径的 pathData 为：');
+        console.log('  ' + pathData);
         // const paperPath = new Path(pathData);
-        const offsets = getOffsets(pathData, pathData);   //  求 path 自己和自己的交点，相对起点的距离
+
+        //  求 path 自己和自己的交点，相对起点的距离
+        const offsets = getOffsets(pathData, pathData);   
+        console.log('paper 计算出来的交点')
         console.log(Object.values(offsets))
 
+        let allLines = [];
+        let allMapPoints = {};
         Object.values(offsets).forEach(item => {
-            const lines = getLines(item.pathData, item.offsets);
+            const {mapPoints, lines} = getLines(item.pathData, item.offsets);   // 
+
+            // 子 path 生成的线条，进行合并
+            allLines = allLines.concat(lines);
             drawLines(lines);    // 线条可视化
             // drawLinesAnimation(lines, 1000);
+
+            // 点集进行合并。
+            // if ()
+            mergeMapPoint(allMapPoints, mapPoints);
+            
         })
+        console.log('线条对象：')
+        console.log(allLines);
+
+        console.log('交点');
+        console.log(allMapPoints)
+        drawFirstPoint(allMapPoints);   // 绘制第一个交点
 
 
-        // const lines = getLines(pathData, offsets);
-        // console.log("TCL: createSelfLine -> lines", lines)
-        
-     
-    
+        // 取出一个交点对象，做测试
+        /* const p_ = Object.values(allMapPoints)[2];
+        console.log(p_)
+        p_.orderLines() */;
+
+
+        // 遍历，找闭合path。
+        blockAlg(allMapPoints);
+
 };
+
+// 显示第一个交代呢
+const drawFirstPoint = (map) => {
+    let point = Object.values(map)[0];
+    const circle = new Shape.Circle(new Point(point.x, point.y), 5);
+    circle.fillColor = '#f04';
+}
+
+// 合并 mapPoints。主要是将 offset 进行扩充
+const mergeMapPoint = (target, points) => {
+    // console.log(points)
+    Object.keys(points).forEach(key => {
+
+        if (target[key]) {
+            // console.log(target[key])
+            target[key].addLine(points[key].lines);
+        } else {
+            target[key] = points[key];
+        }
+
+    })
+
+} 
 
 const drawPoint = (point) => {
     const circle = new Shape.Circle(point, 4);
@@ -127,7 +129,7 @@ const drawLinesAnimation = (lines, interval = 700) => {
         i++;
         if (i < len) {
             setTimeout(() => {
-                console.log('zhi行')
+                console.log('定时执行。')
                 path.remove();
                 draw();
             }, interval);
@@ -138,6 +140,7 @@ const drawLinesAnimation = (lines, interval = 700) => {
 }
 
 const drawLines = (lines) => {
+    if (!lines) return;
     lines.forEach(item => {
         const path = new CompoundPath(item.pathData);
         path.strokeWidth = 3
@@ -147,7 +150,7 @@ const drawLines = (lines) => {
 
 // 获取 子path
 const getChildrenPaths = (paperPath) => {
-    class Child {
+    class ChildPath {
         constructor(pathData, id) {
             this.pathData = pathData;
             this.id = id;
@@ -155,7 +158,7 @@ const getChildrenPaths = (paperPath) => {
         }
         addOffset(val) {
             this.offsets.push(val);
-            this.offsets.sort((a,b) => a-b);   // 排序。
+            this.offsets.sort((a,b) => a.val-b.val);   // 排序。
         }
     }
     let children = {};
@@ -167,7 +170,7 @@ const getChildrenPaths = (paperPath) => {
             // end,
         }); */
 
-        children[item.id] = new Child(item.pathData, item.id);
+        children[item.id] = new ChildPath(item.pathData, item.id);
         
         /* {
             pathData: item.pathData,
@@ -180,58 +183,104 @@ const getChildrenPaths = (paperPath) => {
     return children;
 }
 
+// Offset 对象。
+class Offset {
+    constructor(val, coord) {
+        this.val = val;
+        this.point = {
+            x: coord.x,
+            y: coord.y
+        }
+    }
+}
+
 // 求自身的交点。
 const getOffsets = (pathData) => {
     const path = new paper.CompoundPath(pathData);
+    path.strokeColor = 'black';
     window.path = path;
 
     // 将 子 path 都保存起来。
     const childrenPaths = getChildrenPaths(path);
-    console.log(childrenPaths);
-
-    path.strokeColor = 'black';
-    // path.selected = true;
-
     const curves = path.getCrossings(path);
-    let offsets = [];  // 距离起点的距离。
-    console.log(curves)
-    curves.forEach(item => {
-        offsets.push(item.offset);
-        offsets.push(item.intersection.offset);
 
-        childrenPaths[item.path.id].addOffset(item.offset);
-        childrenPaths[item.intersection.path.id].addOffset(item.intersection.offset);
+    // console.log('交点的情况：')
+    // console.log(curves)
+    curves.forEach(item => {
         
+
+       /*  console.log(item.point.x, item.point.y);
+        console.log(item.intersection.point.x, item.intersection.point.y); */
+
+        childrenPaths[item.path.id].addOffset( 
+            new Offset(item.offset, item.point) 
+        );
+        childrenPaths[item.intersection.path.id].addOffset( 
+            new Offset(item.intersection.offset, item.point)
+        );
 
         // 绘制交点。
         drawPoint(item.point)
 
+
     });
-    // console.log(offsets)
-    offsets.sort((a,b) => a - b);  // 排序
-    // return offsets;
     return childrenPaths;
 }
 
-// 求自己和自己相交切割后产生的 线条。
+// 求自己和自己相交切割后产生的 线条 以及 交点对象。
 export const getLines = (d, offsets) => {
-    if (offsets.length == 0) return [];   // 返回空数组。
-    // offsets 排序
-    // offsets.sort((a,b) => a - b);
-    
     let lines = [];
+    let mapPoints = {};
+
+    if (offsets.length == 0) {
+        return {mapPoints, lines};   
+    }
+
+    function addMapPoint(point, line) {
+        const {x, y} = point;
+        const key = x + ',' + y;
+        if (!mapPoints[key]) {
+            mapPoints[key] = new Point_(x, y);
+        }
+        mapPoints[key].addLine(line);
+    }
+
     (() => {
         // 绘制第一条线
         let offset = offsets[0];
-        let pathData = Snap.path.getSubpath(d, 0, offset);   // 这个可能不适合 复合path
+        let pathData = Snap.path.getSubpath(d, 0, offset.val);   // 这个可能不适合 复合path
         
-        let point = Snap.path.getPointAtLength(d, offset);
+        let point = Snap.path.getPointAtLength(d, offset.val);
         const circle = new Shape.Circle(new Point(point.x, point.y), 4);
         circle.fillColor = 'red';
 
-        const line = new Line(pathData);
+        const line = new Line(pathData, {}, offset.point);
         lines.push(line);
-    })()
+
+        addMapPoint(offset.point, line);
+    })();
+
+    // 最后一条线合并进第一条线里面。
+    (() => {
+        let offset = offsets[offsets.length - 1];
+        let pathData = Snap.path.getSubpath(d, offset.val, Infinity);
+        const a = new SVG.PathArray(lines[0].pathData);
+        a.value.splice(0, 1);
+        // lines[0] = new Line(pathData + a.toString());
+        lines[0].pathData = pathData + a.toString();
+        lines[0].start = {
+            x: offset.point.x,
+            y: offset.point.y
+        }
+        addMapPoint(offset.point, lines[0]);
+
+        lines[0].getLength();   
+        // const line = new Line(pathData);
+        // let lines[0]
+
+        // lines.push(line);
+        // 合并起点和终点
+    })();
 
 
     // 绘制中间部分的线
@@ -239,44 +288,56 @@ export const getLines = (d, offsets) => {
         const offset = offsets[i];
         // let prev = (index == 0) ? 0 : offsets[index - 1];
         const prev = offsets[i - 1];
-        const pathData = Snap.path.getSubpath(d, prev, offset);
+
+
+        const pathData = Snap.path.getSubpath(d, prev.val, offset.val);
 
         // pathData 要取开头和结尾
-        const line = new Line(pathData);
-        lines.push(line);
-        // line 可视化。
 
-        let point = Snap.path.getPointAtLength(d, offset);
+
+        // 这里的 line 应该没问题才对。
+        /* if (prev.point.x == offset.point.x && prev.point.y == offset.point.y) {
+            console.log('是个闭合')
+        } */
+        const line = new Line(pathData, prev.point, offset.point);
+        lines.push(line);
+        
+        // 重要：添加到 mapPoints
+        addMapPoint(prev.point, line);
+        addMapPoint(offset.point, line);
+        
+
+        // 点的可视化
+        /* let point = Snap.path.getPointAtLength(d, offset.val);
         const circle = new Shape.Circle(new Point(point.x, point.y), 4);
-        circle.fillColor = 'black';
+        circle.fillColor = 'black'; */
     }
 
-    // 最后一条线合并进第一条线里面。
-    (() => {
-        let offset = offsets[offsets.length - 1];
-        let pathData = Snap.path.getSubpath(d, offset, Infinity);
+    // console.log('点集：')
+    // console.log(mapPoints);
 
-        console.log(lines[0].pathData)
+    // 去掉起点和终点相同的点。
+    // 找到 len 为 0 的line，找他们的
 
-        const a = new SVG.PathArray(lines[0].pathData);
-        console.log(a)
-        a.value.splice(0, 1);
-        lines[0] = new Line(pathData + a.toString());
+    Object.keys(mapPoints).forEach(key => {
+        const point = mapPoints[key];
+        point.removeLen0Lines();  // 移除长度为 0 的线。
+        
+        if (point.lines.length == 0) {
+            delete mapPoints[key] 
+        }
+    })
 
-        // const line = new Line(pathData);
-        // let lines[0]
-
-        // lines.push(line);
-        // 合并起点和终点
-    })()
-    return lines;
+    return {mapPoints, lines};
 }
 
+
+// 获取颜色值
 const getColor = (() => {
     let colors = [
             '#f173ac', '#6b2f1b', '#2468a2', '#de773f', '#ed1941',
             '#1d953f', '#F9D919', '#0084C6', '#B20BB7', '#ef4136', 
-            '#585eaa', '#8009B2', '#ad8b3d'
+            '#585eaa', '#8009B2', '#ad8b3d', '#7fb80e', '#00ae9d'
         ],
         i = 0;
 
