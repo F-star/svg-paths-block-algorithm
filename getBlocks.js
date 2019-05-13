@@ -45,14 +45,14 @@ export const createSelfLine = (pathDatas) => {
     // 1. 计算 offset
       
         const pathData = pathDatas.join(' ');
-        console.log('路径的 pathData 为：');
-        console.log('  ' + pathData);
+        // console.log('路径的 pathData 为：');
+        // console.log('  ' + pathData);
         // const paperPath = new Path(pathData);
 
         //  求 path 自己和自己的交点，相对起点的距离
         const offsets = getOffsets(pathData, pathData);   
-        console.log('paper 计算出来的交点')
-        console.log(Object.values(offsets))
+        // console.log('paper 计算出来的交点')
+        // console.log(Object.values(offsets))
 
         let allLines = [];
         let allMapPoints = {};
@@ -333,7 +333,7 @@ export const getLines = (d, offsets) => {
 
 
 // 获取颜色值
-const getColor = (() => {
+export const getColor = (() => {
     let colors = [
             '#f173ac', '#6b2f1b', '#2468a2', '#de773f', '#ed1941',
             '#1d953f', '#F9D919', '#0084C6', '#B20BB7', '#ef4136', 

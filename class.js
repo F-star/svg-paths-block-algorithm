@@ -85,10 +85,9 @@ export class Point_ {
         console.log(this) */
 
         const lens = lines.map(item => item.len);
-        console.log(lens);
 
         let min = Math.min.apply(null, lens)
-        console.log("TCL: Point_ -> orderLines -> min", min);
+
         
         // 生成一个圆，求喝其他线段的交点。
         const circle = new Shape.Circle({
