@@ -1,3 +1,5 @@
+// 该文件的代码，负责path拆分为线和点的实现
+
 import { Point_, Line } from "./class.js";
 import { blockAlg } from "./blockAlg.js";
 
@@ -235,11 +237,13 @@ const getOffsets = (pathData) => {
 export const getLines = (d, offsets) => {
     let lines = [];
     let mapPoints = {};
+    let closed = /[Z|z]\s*$/.test(d);   // 是否为闭合子path。
 
     if (offsets.length == 0) {
         return {mapPoints, lines};   
     }
 
+    // 生成point（如果point不存在），并将 line 放入 point。
     function addMapPoint(point, line) {
         const {x, y} = point;
         const key = x + ',' + y;
@@ -249,10 +253,10 @@ export const getLines = (d, offsets) => {
         mapPoints[key].addLine(line);
     }
 
-    (() => {
+    if (closed == true) {
         // 绘制第一条线
         let offset = offsets[0];
-        let pathData = Snap.path.getSubpath(d, 0, offset.val);   // 这个可能不适合 复合path
+        let pathData = Snap.path.getSubpath(d, 0, offset.val); 
         
         let point = Snap.path.getPointAtLength(d, offset.val);
 
@@ -264,10 +268,10 @@ export const getLines = (d, offsets) => {
         lines.push(line);
 
         addMapPoint(offset.point, line);
-    })();
+    }
 
-    // 最后一条线合并进第一条线里面。
-    (() => {
+    // 最后一条线和最后一条合并
+    if (closed == true) {
         let offset = offsets[offsets.length - 1];
         let pathData = Snap.path.getSubpath(d, offset.val, Infinity);
         const a = new SVG.PathArray(lines[0].pathData);
@@ -286,7 +290,7 @@ export const getLines = (d, offsets) => {
 
         // lines.push(line);
         // 合并起点和终点
-    })();
+    }
 
 
     // 绘制中间部分的线
@@ -325,6 +329,7 @@ export const getLines = (d, offsets) => {
     // 去掉起点和终点相同的点。
     // 找到 len 为 0 的line，找他们的
 
+    // 移除长度为 0 的 line。
     Object.keys(mapPoints).forEach(key => {
         const point = mapPoints[key];
         point.removeLen0Lines();  // 移除长度为 0 的线。

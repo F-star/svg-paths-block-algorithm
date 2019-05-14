@@ -1,3 +1,5 @@
+// 点的合并
+
 import { getColor } from "./getBlocks.js";
 
 /**
@@ -90,6 +92,8 @@ const getEnclosePath = (points, start) => {
                 id += `-${line.id}`
 
                 if (line.visited >= 2) {
+
+                    // 嗯？ 这里为什么会进去？？
                     console.error('代码有bug，因为实现上不会第三次访问同一条线，除非这个点是起点')
                     throwFlag = true;
                     break; 
@@ -105,9 +109,10 @@ const getEnclosePath = (points, start) => {
 
 
             // 如果组成的 path 是逆时针。
-            /* if((new Path(block)).clockwise == false) {
+            if((new Path(block)).clockwise == false) {
                 // 啥都不干
-            } else { */
+
+            } else {
                 if (throwFlag == false) {
                     passlines.forEach(item => {
                         item.visited++;
@@ -116,10 +121,10 @@ const getEnclosePath = (points, start) => {
                         block,
                         lines: lineArr,
                         id,
-                        clockwise: (new Path(block)).clockwise,
+                        // clockwise: (new Path(block)).clockwise,
                     });
                 }
-            // }
+            }
 
 
             
