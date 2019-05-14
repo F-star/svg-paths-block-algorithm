@@ -50,12 +50,13 @@ const getEnclosePath = (points, start) => {
     // 都走一遍
 
     start.lines.forEach(line => {   // 每次遍历的起点
-        if (line.visited < 3) {
+        if (line.visited < 2) {
             // 初始化。
             let lineArr = [];
-            let throwFlag = false;    // 是否丢掉正在搜索的的路径。
+            let throwFlag = false;      // 是否丢掉正在搜索的的路径。
             let point = start;
-            let id = '' + line.id;    // 记录走过的line。 如 '4-8-21-5'
+            let id = '' + line.id;      // 记录走过的line。 如 '4-8-21-5'
+            let passlines = [];         // 记录经过的 lines
 
             while (true) {
                 
@@ -69,9 +70,10 @@ const getEnclosePath = (points, start) => {
                 } else {
                     console.error('有bug！！当前线条的任何一个端点不为 point')
                 }
-                line.visited++;
+                // line.visited++; // 失败的不能++；
                 lineArr.push(pathData_);
-                console.log('查找路径的下一个 point', point)
+                passlines.push(line)
+                // console.log('查找路径的下一个 point', point)
                 
 
                 if (point == start) {
@@ -87,8 +89,8 @@ const getEnclosePath = (points, start) => {
                 line = point.getNextLine(line);
                 id += `-${line.id}`
 
-                if (line.visited >= 3) {
-                    console.log('代码有bug，因为实现上不会第三次访问同一条线，除非这个点是起点')
+                if (line.visited >= 2) {
+                    console.error('代码有bug，因为实现上不会第三次访问同一条线，除非这个点是起点')
                     throwFlag = true;
                     break; 
                 }
@@ -100,32 +102,37 @@ const getEnclosePath = (points, start) => {
             // 恭喜，拿到一个闭合路径。
             // 注意判断顺逆时针。逆时针说明是最外围的
             let block = mergeLineString(lineArr);   
-            // 检测 时针
-            if (throwFlag == false) {
-                blocks.push({
-                    block,
-                    lines: lineArr,
-                    id,
-                    clockwise: (new Path(block)).clockwise,
-                });
-            }
-            
+
+
+            // 如果组成的 path 是逆时针。
+            /* if((new Path(block)).clockwise == false) {
+                // 啥都不干
+            } else { */
+                if (throwFlag == false) {
+                    passlines.forEach(item => {
+                        item.visited++;
+                    })
+                    blocks.push({
+                        block,
+                        lines: lineArr,
+                        id,
+                        clockwise: (new Path(block)).clockwise,
+                    });
+                }
+            // }
+
+
             
             // 画出来看看
             /* (() => {
                 if((new Path(block)).clockwise == true) { // 顺时针才会址
-
-                    
                     // const path = new Path({
                     //     pathData: block,
                     //     fillColor: '#fff',
                     //     strokeColor: '#000'
                     // });
                 }
-
             })() */
-
-
         }
     }) 
 
