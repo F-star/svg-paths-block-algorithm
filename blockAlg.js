@@ -48,7 +48,7 @@ export const blockAlg = (points) => {
 const getEnclosePath = (points, start) => {
 
     // 初始化
-    let point = start;
+    // let point_ = start;   // start 为切入点。就是
 
     // 1. 找可用一条线
 
@@ -58,37 +58,54 @@ const getEnclosePath = (points, start) => {
 
     // 都走一遍
 
-    point.lines.forEach(line => {
-        if (line.visited < 2) {
-            // 找一个 闭合path。
+    start.lines.forEach(line => {   // 每次遍历的起点
+        if (line.visited < 200) {
+            // 初始化。
             let lineArr = [];
             let throwFlag = false;    // 是否丢掉正在搜索的的路径。
+            let point = start;
+
             while (true) {
                 
                 let pathData_ = line.pathData;
                 if (line.start.x == point.x && line.start.y == point.y) {  
                     point = points[ getPointString(line.end) ];
-                } else {
+                } else if (line.end.x == point.x && line.end.y == point.y) {
                     point = points[ getPointString(line.start) ]; 
                     // line 需要反转。
                     pathData_ = reversePathData(pathData_);
+                } else {
+                    console.error('有bug！！')
+                    console.log('-----------')
+                    console.log(start)
+                    console.log(point)
+                    console.log('id', line.id)
+                    console.log(line.start)
+                    console.log(line.end)
+                    console.log('-----------')
                 }
                 line.visited++;
                 lineArr.push(pathData_);
                 console.log('查找路径的下一个 point', point)
                 
 
-                if (point == start) break;
+                if (point == start) {
+                    console.log('走过的路径')
+                    if (lineArr.length == 1) {
+                        // throwFlag = true;
+                        console.log('------ 奇怪的情况，只走了一条线路')
+                        console.log()
+                    }
+                    break;
+                };
 
                 point.orderLines();
                 line = point.getNextLine(line);
           
-                if (line.visited >= 2) {
-                    // console.log('是否为起点：', )
-                    console.error('代码有bug，因为实现上不会第三次访问同一条线，除非这个点是起点')
-          
+                if (line.visited >= 3) {
+                    console.log('代码有bug，因为实现上不会第三次访问同一条线，除非这个点是起点')
                     throwFlag = true;
-                    // break; 
+                    break; 
                 }
                 // break;
             }
@@ -99,12 +116,12 @@ const getEnclosePath = (points, start) => {
             // 注意判断顺逆时针。逆时针说明是最外围的
             let block = mergeLineString(lineArr);   
             // 检测 时针
-            // if (throwFlag == false) {
+            if (throwFlag == false) {
                 blocks.push({
                     block,
                     lines: lineArr
                 });
-            // }
+            }
             
             
             // 画出来看看
@@ -155,8 +172,8 @@ const drawBlocks = (blocks) => {
                 }) */
                 line = new Path({
                     pathData: blocks[i].lines[0],
-                    strokeWidth: 4,
-                    strokeColor: getColor()
+                    strokeWidth: 6,
+                    strokeColor: 'red'
                 });
                 
 
