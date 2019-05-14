@@ -39,7 +39,7 @@ export const blockAlg = (points) => {
     })
 
     console.log(blocks)
-    drawBlocks(blocks)
+    drawBlocks(blocks, 500)
 
    
 
@@ -47,23 +47,15 @@ export const blockAlg = (points) => {
 
 const getEnclosePath = (points, start) => {
 
-    // 初始化
-    // let point_ = start;   // start 为切入点。就是
-
-    // 1. 找可用一条线
-
-    // let line = point.lines[0];
-    // if (line.visited >= 2) throw new Error('该线已经被访问过两次了');
-
-
     // 都走一遍
 
     start.lines.forEach(line => {   // 每次遍历的起点
-        if (line.visited < 200) {
+        if (line.visited < 3) {
             // 初始化。
             let lineArr = [];
             let throwFlag = false;    // 是否丢掉正在搜索的的路径。
             let point = start;
+            let id = '' + line.id;    // 记录走过的line。 如 '4-8-21-5'
 
             while (true) {
                 
@@ -75,14 +67,7 @@ const getEnclosePath = (points, start) => {
                     // line 需要反转。
                     pathData_ = reversePathData(pathData_);
                 } else {
-                    console.error('有bug！！')
-                    console.log('-----------')
-                    console.log(start)
-                    console.log(point)
-                    console.log('id', line.id)
-                    console.log(line.start)
-                    console.log(line.end)
-                    console.log('-----------')
+                    console.error('有bug！！当前线条的任何一个端点不为 point')
                 }
                 line.visited++;
                 lineArr.push(pathData_);
@@ -92,16 +77,16 @@ const getEnclosePath = (points, start) => {
                 if (point == start) {
                     console.log('走过的路径')
                     if (lineArr.length == 1) {
-                        // throwFlag = true;
-                        console.log('------ 奇怪的情况，只走了一条线路')
-                        console.log()
+                        throwFlag = true;
+                        console.error('这里出问题了，只走了一条线路')
                     }
                     break;
                 };
 
                 point.orderLines();
                 line = point.getNextLine(line);
-          
+                id += `-${line.id}`
+
                 if (line.visited >= 3) {
                     console.log('代码有bug，因为实现上不会第三次访问同一条线，除非这个点是起点')
                     throwFlag = true;
@@ -119,7 +104,9 @@ const getEnclosePath = (points, start) => {
             if (throwFlag == false) {
                 blocks.push({
                     block,
-                    lines: lineArr
+                    lines: lineArr,
+                    id,
+                    clockwise: (new Path(block)).clockwise,
                 });
             }
             
@@ -146,7 +133,7 @@ const getEnclosePath = (points, start) => {
 };
 
 
-const drawBlocks = (blocks) => {
+const drawBlocks = (blocks, internal = 1000) => {
     const len = blocks.length;
     let i = -1;
     let path;
@@ -178,7 +165,7 @@ const drawBlocks = (blocks) => {
                 
 
                 draw();
-            }, 1000)
+            }, internal)
         }
     }  
     draw();

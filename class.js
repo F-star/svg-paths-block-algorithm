@@ -93,7 +93,7 @@ export class Point_ {
         const circle = new Shape.Circle({
             center: [this.x, this.y],
             radius: min * 0.8,
-            strokeColor: 'red',
+            // strokeColor: 'red',
         })
         let circlePath = circle.toPath();    // 圆是顺时针方向。
         if (circlePath.clockwise == false) circlePath.reverse();

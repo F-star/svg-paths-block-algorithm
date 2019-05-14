@@ -74,6 +74,10 @@ export const createSelfLine = (pathDatas) => {
 
         console.log('交点');
         console.log(allMapPoints)
+
+
+        // TODO 没有交点的情况。
+
         drawFirstPoint(allMapPoints);   // 绘制第一个交点
 
 
@@ -251,6 +255,8 @@ export const getLines = (d, offsets) => {
         let pathData = Snap.path.getSubpath(d, 0, offset.val);   // 这个可能不适合 复合path
         
         let point = Snap.path.getPointAtLength(d, offset.val);
+
+        // 绘制起点位置。
         const circle = new Shape.Circle(new Point(point.x, point.y), 4);
         circle.fillColor = 'red';
 
