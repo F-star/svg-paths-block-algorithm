@@ -1,7 +1,5 @@
 // 点的合并
 
-import { getColor } from "./getBlocks.js";
-
 /**
  * 获取 point 算法。
  */
@@ -10,27 +8,31 @@ import { getColor } from "./getBlocks.js";
 
 // point 对象要加一个 visited，记录访问了几次。
 let blocks = [];
-export const blockAlg = (points) => {
+export const blockAlg = (points, enclosedLines) => {
+    blocks  = [];
 
     // let point;
 
     // 顺指针优先遍历
     Object.values(points).forEach(point => {
         point.orderLines();  // lines 进行逆时针排序。
-
-        console.log('----计算块的起点----')
-        console.log(point);
-        getEnclosePath(points, point);
+        getEnclosePath(points, point, enclosedLines);
     })
 
     console.log(blocks)
     drawBlocks(blocks, 500)
 
-   
+    Object.values(blocks).forEach(point => {
+        if (point.id == '26-11-24-16') {
+            console.log('# 26-11-24-16:')
+            console.log(point)
+        }
+    });
+    return blocks;
 
 }
 
-const getEnclosePath = (points, start) => {
+const getEnclosePath = (points, start, enclosedLines) => {
 
     // 都走一遍
 
@@ -64,7 +66,6 @@ const getEnclosePath = (points, start) => {
                 
 
                 if (point == start) {
-                    console.log('走过的路径')
                     if (lineArr.length == 1) {
                         throwFlag = true;
                         console.error('这里出问题了，只走了一条线路')
@@ -93,10 +94,11 @@ const getEnclosePath = (points, start) => {
             let block = mergeLineString(lineArr);   
 
 
-            // 如果组成的 path 是逆时针。
             if((new Path(block)).clockwise == false) {
-                // 啥都不干
-
+                // 如果组成的 path 是逆时针
+                /* enclosedLines.push({
+                    block
+                }) */
             } else {
                 if (throwFlag == false) {
                     passlines.forEach(item => {
@@ -130,7 +132,7 @@ const getEnclosePath = (points, start) => {
 };
 
 
-const drawBlocks = (blocks, internal = 1000) => {
+export const drawBlocks = (blocks, internal = 1000) => {
     const len = blocks.length;
     let i = -1;
     let path;
@@ -140,7 +142,7 @@ const drawBlocks = (blocks, internal = 1000) => {
         i++;
         if (i < len) {
             setTimeout(() => {
-                console.log('绘制！')
+                // console.log('绘制！')
                 path && path.remove();
                 line && line.remove();
 
@@ -154,13 +156,13 @@ const drawBlocks = (blocks, internal = 1000) => {
                 /* blocks[i].lines.forEach(line => {
                     
                 }) */
-                line = new Path({
-                    pathData: blocks[i].lines[0],
-                    strokeWidth: 6,
-                    strokeColor: 'red'
-                });
-                
-
+                if (blocks[i].lines) {
+                    line = new Path({
+                        pathData: blocks[i].lines[0],
+                        strokeWidth: 6,
+                        strokeColor: 'red'
+                    });
+                }
                 draw();
             }, internal)
         }
@@ -200,6 +202,5 @@ export const mergeLineString = (lineArr, closed = true) => {
         str += lineArr[i].replace(/^M[\d|\.]+[,| ][\d|\.]+/, function()  {return ''});
     }
     if(closed) str += 'Z';
-    console.log(str);
     return str;
 }

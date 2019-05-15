@@ -157,7 +157,6 @@ export class Point_ {
 
     // 根据 line id 移除某条线。
     removeLineById(id) {
-        console.log('yyyy-----', id)
         let lines = this.lines;
         for (let i = 0, len = lines.length; i < len; i++) {
             if (lines[i].id == id) {

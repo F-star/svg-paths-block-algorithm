@@ -1,55 +1,16 @@
 // 该文件的代码，负责path拆分为线和点的实现
 
 import { Point_, Line } from "./class.js";
-import { blockAlg, mergeLineString, reversePathData } from "./blockAlg.js";
+import { blockAlg, mergeLineString, reversePathData, drawBlocks } from "./blockAlg.js";
 
 
-class Path_ {    // 重新定义一个 Path_ 类，来包装 peperjs 对象 喝 snapsvg 对象。
-    constructor() {
-        this.pathData = pathData
-        this.paper_ =  new paper.Shape.Path
-    }
-    paper() {
-        
-    }
-}
-
-// class Path 
-// 暴露的方法
-
-
-const getBlocks = (paths) => {
-
-    let points = [];
-    
-
-    // 1. 将 复合path转换为 简单path
-    // 2. 进行两两 path 求交点，如果有交点，生成 line 保存到 交点下。
-}
-
-// 
-const getIntersections = () => {
-
-    // getIntersections(path)
-}
-
-
-// 绘制 segment 的 3个点。
-
-const drawReferPoint = (seg) => {
-    
-}
-
-
-// 先实现第一个算法
-// path 自切割，生成 lines
+let enclosedLines = []; // 自闭合 line。
+// 总方法。
 export const createSelfLine = (pathDatas) => {
-    // 1. 计算 offset
-      
+        // 1. 计算 offset
+        enclosedLines = [];
+
         const pathData = pathDatas.join(' ');
-        // console.log('路径的 pathData 为：');
-        // console.log('  ' + pathData);
-        // const paperPath = new Path(pathData);
 
         //  求 path 自己和自己的交点，相对起点的距离
         const offsets = getOffsets(pathData, pathData);   
@@ -63,7 +24,7 @@ export const createSelfLine = (pathDatas) => {
 
             // 子 path 生成的线条，进行合并
             allLines = allLines.concat(lines);
-            drawLines(lines);    // 线条可视化
+            // drawLines(lines);    // 线条可视化
             // drawLinesAnimation(lines, 1000);
 
             // 点集进行合并。
@@ -73,25 +34,36 @@ export const createSelfLine = (pathDatas) => {
         })
         console.log('线条对象：')
         console.log(allLines);
+        drawLines(allLines);         
 
         simplifyPoints(allMapPoints);
+
         console.log('交点');
         console.log(allMapPoints)
 
         // TODO 合并只有两条边的交点。
-        
-
-        // TODO 没有交点的情况。
-
-        drawFirstPoint(allMapPoints);   // 绘制第一个交点
-
+       
+        // 没有交点的情况
+        if (Object.keys(allMapPoints).length == 0) {
+            console.log('一个交点都找不到。')
+        } else {
+            drawFirstPoint(allMapPoints);   // 绘制第一个交点
+        }
 
         // 遍历，找闭合path。
-        blockAlg(allMapPoints);
+        const paths = blockAlg(allMapPoints, enclosedLines);
 
+        console.log('最终结果：', paths);
+
+        // 自闭line 绘制
+        console.log('自闭线', enclosedLines)
+
+
+
+        drawBlocks(enclosedLines);
 };
 
-// TODO 将只有两个 line 的 point 合并到其他 point。
+// TODO 将只有两个 line 的 point 去除，并将和它相连的两条 line 合并，更新到其他 point 上。
 const simplifyPoints = (points) => {
     let count = 0;
     Object.values(points).forEach(point => {
@@ -131,10 +103,7 @@ const simplifyPoints = (points) => {
         // 计算新 line 的 pahData
         let pathData1 = flag1 ? reversePathData(line1.pathData) : line1.pathData;
         let pathData2 = flag2 ? reversePathData(line2.pathData) : line2.pathData;
-        const newPathData = mergeLineString([pathData1, pathData2]);
-        console.log('=========')
-        console.log(newPathData)
-
+        const newPathData = mergeLineString([pathData1, pathData2], false);
         // 这里大概可以比较 prev 和 next 是否相等。如果相等，就可以把合并的 newPath 作为 特殊path
 
 
@@ -142,7 +111,6 @@ const simplifyPoints = (points) => {
         prev.removeLineById(line1.id);
         next.removeLineById(line2.id);
         let newLine = new Line(newPathData, prev, next)
-        console.log('新线条的id', newLine.id)
         prev.addLine(newLine);
         next.addLine(newLine);
         // const newPathData = 
@@ -150,7 +118,6 @@ const simplifyPoints = (points) => {
         // 从 points 中移除当前点
         delete points[point.x+','+point.y];
     });
-
     console.log(`共移除${count}个交点`)
 }
 
@@ -313,35 +280,50 @@ export const getLines = (d, offsets) => {
         mapPoints[key].addLine(line);
     }
 
-    // if (closed == true) {
-    //     // 第一条线和最后一天线合并。
-
-    //     /**** 获取第一条 line ****/
-    //     let offset = offsets[0];
-    //     let pathData = Snap.path.getSubpath(d, 0, offset.val); 
-
-    //     // 绘制起点位置。
-    //     const circle = new Shape.Circle(new Point(point.x, point.y), 4);
-    //     circle.fillColor = 'red';
-  
-
-    //     /*** 获取最后一条 line */
-    //     let offset2 = offsets[offsets.length - 1];
-    //     let pathData2 = Snap.path.getSubpath(d, offset2.val, Infinity);
-    //     // const a = new SVG.PathArray(lines[0].pathData);
-    //     // a.value.splice(0, 1); 
-    //     let newPathData = mergeLineString([pathData2, pathData], false);
-
-
-
-
-    //     const line = new Line(pathData, {}, offset.point);
-    //     lines.push(line);
-
-    //     addMapPoint(offset.point, line); 
-    // }
-
     if (closed == true) {
+        // 第一条线和最后一条线合并。
+
+        /**** 获取第一条 line ****/
+        let offset1 = offsets[0];
+        let offset2 = offsets[offsets.length - 1];
+
+
+        
+
+        let pathData = Snap.path.getSubpath(d, 0, offset1.val); 
+
+        // 绘制起点位置。
+        const [ , x_, y_] = new SVG.PathArray(pathData).value[0];
+        let point = Snap.path.getPointAtLength(d, {x: x_, y: y_});
+        const circle = new Shape.Circle(new Point(point.x, point.y), 10);
+        circle.fillColor = 'green';
+
+
+        let pathData2 = Snap.path.getSubpath(d, offset2.val, Infinity);
+ 
+        let newPathData = mergeLineString([pathData2, pathData], false);
+
+        if (offset1.point.x == offset2.point.x && offset1.point.y == offset2.point.y) {
+            console.warn('哦豁')
+            enclosedLines.push({
+                block: newPathData + 'Z'
+            })
+        } else {
+            const line = new Line(newPathData, offset2.point, offset1.point); 
+            addMapPoint(offset1.point, line); 
+            addMapPoint(offset2.point, line)
+        }
+
+        // addMapPoint(offset.point, line);
+
+
+        // const line = new Line(pathData, {}, offset.point);
+        // lines.push(line);
+
+
+    }
+
+  /*   if (closed == true) {
         // 绘制第一条线
         let offset = offsets[0];
         let pathData = Snap.path.getSubpath(d, 0, offset.val); 
@@ -376,7 +358,7 @@ export const getLines = (d, offsets) => {
 
         // lines.push(line);
         // 合并起点和终点
-    }
+    } */
 
 
     // 绘制中间部分的线
@@ -395,6 +377,11 @@ export const getLines = (d, offsets) => {
         if (prev.point.x == offset.point.x && prev.point.y == offset.point.y) {
             console.log('是个闭合！！！ 进行特殊处理')
             // 归纳到特殊 path 里。
+            enclosedLines.push({
+                block: pathData + 'Z'
+            });
+            
+
             continue;
         }
         const line = new Line(pathData, prev.point, offset.point);
