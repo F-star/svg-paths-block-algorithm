@@ -44,6 +44,26 @@ export class Line {
         this.len = len;
         // return len;
     };
+
+    // 比较和 start 是否相等
+    compareStartPoint(point) {
+        const {x, y} = this.start;
+        return (x == point.x && y == point.y);
+    }
+    
+    compareEndPoint(point) {
+        const {x, y} = this.end;
+        return (x == point.x && y == point.y);
+    }
+
+    // 返回 start 为 `x,y` 形式的字符串
+    getStartStr() {
+        return this.start.x + ',' + this.start.y;
+    }
+
+    getEndStr() {
+        return this.end.x + ',' + this.end.y;
+    }
 }
 
 // 交点对象
@@ -131,9 +151,24 @@ export class Point_ {
     }
 
     // 获取一条可用的线
-    getEnableLine() {
+ /*    getEnableLine() {
 
+    } */
+
+    // 根据 line id 移除某条线。
+    removeLineById(id) {
+        console.log('yyyy-----', id)
+        let lines = this.lines;
+        for (let i = 0, len = lines.length; i < len; i++) {
+            if (lines[i].id == id) {
+                lines.splice(i, 1)
+                return true;
+            }
+        }
+        console.log(`point.removeLineById 找不到 id 为${id} 的 line`)
+        return false;
     }
+
 
     toString() {
         return this.x + ',' + this.y;

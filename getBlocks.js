@@ -1,7 +1,7 @@
 // 该文件的代码，负责path拆分为线和点的实现
 
 import { Point_, Line } from "./class.js";
-import { blockAlg } from "./blockAlg.js";
+import { blockAlg, mergeLineString, reversePathData } from "./blockAlg.js";
 
 
 class Path_ {    // 重新定义一个 Path_ 类，来包装 peperjs 对象 喝 snapsvg 对象。
@@ -74,19 +74,16 @@ export const createSelfLine = (pathDatas) => {
         console.log('线条对象：')
         console.log(allLines);
 
+        simplifyPoints(allMapPoints);
         console.log('交点');
         console.log(allMapPoints)
 
+        // TODO 合并只有两条边的交点。
+        
 
         // TODO 没有交点的情况。
 
         drawFirstPoint(allMapPoints);   // 绘制第一个交点
-
-
-        // 取出一个交点对象，做测试
-        /* const p_ = Object.values(allMapPoints)[2];
-        console.log(p_)
-        p_.orderLines() */;
 
 
         // 遍历，找闭合path。
@@ -94,7 +91,70 @@ export const createSelfLine = (pathDatas) => {
 
 };
 
-// 显示第一个交代呢
+// TODO 将只有两个 line 的 point 合并到其他 point。
+const simplifyPoints = (points) => {
+    let count = 0;
+    Object.values(points).forEach(point => {
+        if (point.lines.length > 2) return;
+
+        count++;
+        
+        let line1 = point.lines[0];
+        let line2 = point.lines[1];
+
+        let prev; // line1的前一个点
+        let next;
+
+        let flag1 = false; // pathData 合并前是否需要反转。
+        let flag2 = false;
+
+        // pathData 合并。
+        // 检查是 line1 是 start 为当前 point
+        if ( line1.compareStartPoint(point) ) {
+            // line1 的 start 为 point
+            prev = points[line1.getEndStr()];
+            flag1 = true;
+        } else {
+            // end
+            prev = points[line1.getStartStr()];
+        }
+
+        if ( line2.compareStartPoint(point) ) {
+            // line2 的 start 为 point
+            next = points[line2.getEndStr()]; 
+        } else {
+            // end
+            next = points[line2.getStartStr()];
+            flag2 = true;
+        }
+
+        // 计算新 line 的 pahData
+        let pathData1 = flag1 ? reversePathData(line1.pathData) : line1.pathData;
+        let pathData2 = flag2 ? reversePathData(line2.pathData) : line2.pathData;
+        const newPathData = mergeLineString([pathData1, pathData2]);
+        console.log('=========')
+        console.log(newPathData)
+
+        // 这里大概可以比较 prev 和 next 是否相等。如果相等，就可以把合并的 newPath 作为 特殊path
+
+
+        // 移除prev 和 next原来的 line，添加新的 line
+        prev.removeLineById(line1.id);
+        next.removeLineById(line2.id);
+        let newLine = new Line(newPathData, prev, next)
+        console.log('新线条的id', newLine.id)
+        prev.addLine(newLine);
+        next.addLine(newLine);
+        // const newPathData = 
+
+        // 从 points 中移除当前点
+        delete points[point.x+','+point.y];
+    });
+
+    console.log(`共移除${count}个交点`)
+}
+
+// 显示第一个交点
 const drawFirstPoint = (map) => {
     let point = Object.values(map)[0];
     const circle = new Shape.Circle(new Point(point.x, point.y), 5);
@@ -253,15 +313,41 @@ export const getLines = (d, offsets) => {
         mapPoints[key].addLine(line);
     }
 
+    // if (closed == true) {
+    //     // 第一条线和最后一天线合并。
+
+    //     /**** 获取第一条 line ****/
+    //     let offset = offsets[0];
+    //     let pathData = Snap.path.getSubpath(d, 0, offset.val); 
+
+    //     // 绘制起点位置。
+    //     const circle = new Shape.Circle(new Point(point.x, point.y), 4);
+    //     circle.fillColor = 'red';
+  
+
+    //     /*** 获取最后一条 line */
+    //     let offset2 = offsets[offsets.length - 1];
+    //     let pathData2 = Snap.path.getSubpath(d, offset2.val, Infinity);
+    //     // const a = new SVG.PathArray(lines[0].pathData);
+    //     // a.value.splice(0, 1); 
+    //     let newPathData = mergeLineString([pathData2, pathData], false);
+
+
+
+
+    //     const line = new Line(pathData, {}, offset.point);
+    //     lines.push(line);
+
+    //     addMapPoint(offset.point, line); 
+    // }
+
     if (closed == true) {
         // 绘制第一条线
         let offset = offsets[0];
         let pathData = Snap.path.getSubpath(d, 0, offset.val); 
-        
-        let point = Snap.path.getPointAtLength(d, offset.val);
 
         // 绘制起点位置。
-        const circle = new Shape.Circle(new Point(point.x, point.y), 4);
+        const circle = new Shape.Circle(new Point(offset.point.x, offset.point.y), 4);
         circle.fillColor = 'red';
 
         const line = new Line(pathData, {}, offset.point);
@@ -306,9 +392,11 @@ export const getLines = (d, offsets) => {
 
 
         // 这里的 line 应该没问题才对。
-        /* if (prev.point.x == offset.point.x && prev.point.y == offset.point.y) {
-            console.log('是个闭合')
-        } */
+        if (prev.point.x == offset.point.x && prev.point.y == offset.point.y) {
+            console.log('是个闭合！！！ 进行特殊处理')
+            // 归纳到特殊 path 里。
+            continue;
+        }
         const line = new Line(pathData, prev.point, offset.point);
         lines.push(line);
         

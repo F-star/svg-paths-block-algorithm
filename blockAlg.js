@@ -12,28 +12,11 @@ import { getColor } from "./getBlocks.js";
 let blocks = [];
 export const blockAlg = (points) => {
 
-    //  取一个节点。先遍历一个
-    // let blocks = [];
-    let point;
-    // for (let key in points) {
-        
-    //     point = points[key];   // 获取 point 对象。
-    //     break;
+    // let point;
 
-    // }
-/*     point = Object.values(points)[1]
-
-    console.log(point)
-    
-    point.orderLines();
-    
-    //开始寻路 
-    getEnclosePath(points, point); */
-
-    // 遍历写法
-   
+    // 顺指针优先遍历
     Object.values(points).forEach(point => {
-        point.orderLines();
+        point.orderLines();  // lines 进行逆时针排序。
 
         console.log('----计算块的起点----')
         console.log(point);
@@ -72,6 +55,8 @@ const getEnclosePath = (points, start) => {
                 } else {
                     console.error('有bug！！当前线条的任何一个端点不为 point')
                 }
+
+                if (point == undefined) {throw new Error('你这里有问题，应该是 simplifyPoints 删点出错了')}
                 // line.visited++; // 失败的不能++；
                 lineArr.push(pathData_);
                 passlines.push(line)
@@ -86,7 +71,7 @@ const getEnclosePath = (points, start) => {
                     }
                     break;
                 };
-
+                
                 point.orderLines();
                 line = point.getNextLine(line);
                 id += `-${line.id}`
@@ -191,7 +176,7 @@ const getPointString = (coord) => {
 
 // pathData 反转方法
 
-const reversePathData = (pathData) => {
+export const reversePathData = (pathData) => {
 
     let p = new Path(pathData);
     p.reverse();
@@ -202,7 +187,8 @@ const reversePathData = (pathData) => {
 }
 
 // 合并 线的pathString。
-const mergeLineString = (lineArr) => {
+// closed 表示是否添加 Z
+export const mergeLineString = (lineArr, closed = true) => {
     let len = lineArr.length;
     if (len == 0) throw new Error('提供的数组为空，代码有问题。')
     if (len == 1) return lineArr[0];
@@ -213,7 +199,7 @@ const mergeLineString = (lineArr) => {
         // 这里的正则表达式并不严格，如果传入的字符串变得更不规律，请完善这个正则表达式。
         str += lineArr[i].replace(/^M[\d|\.]+[,| ][\d|\.]+/, function()  {return ''});
     }
-    str += 'Z';
+    if(closed) str += 'Z';
     console.log(str);
     return str;
 }
