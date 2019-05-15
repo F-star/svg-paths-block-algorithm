@@ -70,6 +70,12 @@ const simplifyPoints = (points) => {
         if (point.lines.length > 2) return;
 
         count++;
+       
+        if (point.lines.length == 0) {
+            // 在简化的遍历中会发生。一般发生在 一条些绘制的 连环 8 字形。
+            delete points[point.x+','+point.y];
+            return;
+        }
         
         let line1 = point.lines[0];
         let line2 = point.lines[1];
@@ -83,19 +89,15 @@ const simplifyPoints = (points) => {
         // pathData 合并。
         // 检查是 line1 是 start 为当前 point
         if ( line1.compareStartPoint(point) ) {
-            // line1 的 start 为 point
             prev = points[line1.getEndStr()];
             flag1 = true;
         } else {
-            // end
             prev = points[line1.getStartStr()];
         }
 
         if ( line2.compareStartPoint(point) ) {
-            // line2 的 start 为 point
             next = points[line2.getEndStr()]; 
         } else {
-            // end
             next = points[line2.getStartStr()];
             flag2 = true;
         }
@@ -105,18 +107,38 @@ const simplifyPoints = (points) => {
         let pathData2 = flag2 ? reversePathData(line2.pathData) : line2.pathData;
         const newPathData = mergeLineString([pathData1, pathData2], false);
         // 这里大概可以比较 prev 和 next 是否相等。如果相等，就可以把合并的 newPath 作为 特殊path
+        if (prev == next && prev != point) {    // prev 不等于 point，就是排除自闭线的情况（）
+            console.log('??? 相等  ??')
+            enclosedLines.push({
+                block: newPathData + 'Z'
+            }) 
+        } else {
 
+        }
+
+        console.log(newPathData);
 
         // 移除prev 和 next原来的 line，添加新的 line
         prev.removeLineById(line1.id);
         next.removeLineById(line2.id);
-        let newLine = new Line(newPathData, prev, next)
-        prev.addLine(newLine);
-        next.addLine(newLine);
+
+        if (prev != next) {
+            let newLine = new Line(newPathData, prev, next)   // 发现 prev 和 next 相同就不要生成了。。。
+            prev.addLine(newLine);
+            next.addLine(newLine);
+        } 
+        else {
+            if(prev.lines.length == 0) {
+                delete points[prev.x+','+prev.y];
+            }
+        }
+
         // const newPathData = 
 
         // 从 points 中移除当前点
         delete points[point.x+','+point.y];
+
+        console.log(points)
     });
     console.log(`共移除${count}个交点`)
 }

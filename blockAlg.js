@@ -19,15 +19,9 @@ export const blockAlg = (points, enclosedLines) => {
         getEnclosePath(points, point, enclosedLines);
     })
 
-    console.log(blocks)
+    // console.log(blocks)
     drawBlocks(blocks, 500)
 
-    Object.values(blocks).forEach(point => {
-        if (point.id == '26-11-24-16') {
-            console.log('# 26-11-24-16:')
-            console.log(point)
-        }
-    });
     return blocks;
 
 }
@@ -78,9 +72,8 @@ const getEnclosePath = (points, start, enclosedLines) => {
                 id += `-${line.id}`
 
                 if (line.visited >= 2) {
-
-                    // 嗯？ 这里为什么会进去？？
-                    console.error('代码有bug，因为实现上不会第三次访问同一条线，除非这个点是起点')
+                    // 并没有bug 的说。
+                    // console.error('代码有bug，因为实现上不会第三次访问同一条线，除非这个点是起点')
                     throwFlag = true;
                     break; 
                 }
